@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Debug Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Firebase Debug Page</h1>
+    
+    <div id="status" class="status">Checking Firebase status...</div>
+    
+    <h2>Firebase Version:</h2>
+    <pre id="version">Loading...</pre>
+    
+    <h2>Firebase Config:</h2>
+    <pre id="config">Loading...</pre>
+    
+    <h2>Authentication:</h2>
+    <div id="auth-status">Not authenticated</div>
+    
+    <div>
+        <h3>Test Authentication:</h3>
+        <input type="email" id="email" placeholder="Email" value="test@example.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button id="sign-in">Sign In</button>
+        <button id="sign-up">Sign Up</button>
+        <button id="sign-out">Sign Out</button>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+        import { getFirestore } from 'firebase/firestore';
+        
+        // Log Firebase package versions
+        document.getElementById('version').textContent = `Firebase: Loaded successfully`;
+        
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8cmVUnA5BH886q8pZaY95qJWtp2Zix-0",
+            authDomain: "ag-password-manager.firebaseapp.com",
+            projectId: "ag-password-manager",
+            storageBucket: "ag-password-manager.appspot.com",
+            messagingSenderId: "600996701075",
+            appId: "1:600996701075:web:2726a2e9b16fee4e2f3e66",
+            measurementId: "G-DGW7L70Z13"
+        };
+        
+        document.getElementById('config').textContent = JSON.stringify(firebaseConfig, null, 2);
+        
+        try {
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            
+            document.getElementById('status').textContent = 'Firebase initialized successfully!';
+            document.getElementById('status').className = 'status success';
+            
+            // Monitor auth state
+            onAuthStateChanged(auth, (user) => {
+                const authStatus = document.getElementById('auth-status');
+                if (user) {
+                    authStatus.innerHTML = `
+                        <div class="status success">
+                            <p>Authenticated as: ${user.email}</p>
+                            <p>User ID: ${user.uid}</p>
+                        </div>
+                    `;
+                } else {
+                    authStatus.innerHTML = `
+                        <div class="status error">
+                            Not authenticated
+                        </div>
+                    `;
+                }
+            });
+            
+            // Sign in
+            document.getElementById('sign-in').addEventListener('click', async () => {
+                try {
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    await signInWithEmailAndPassword(auth, email, password);
+                    alert('Signed in successfully!');
+                } catch (error) {
+                    alert(`Sign in error: ${error.message}`);
+                    console.error('Sign in error:', error);
+                }
+            });
+            
+            // Sign up
+            document.getElementById('sign-up').addEventListener('click', async () => {
+                try {
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    alert('Account created successfully!');
+                } catch (error) {
+                    alert(`Sign up error: ${error.message}`);
+                    console.error('Sign up error:', error);
+                }
+            });
+            
+            // Sign out
+            document.getElementById('sign-out').addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                    alert('Signed out successfully!');
+                } catch (error) {
+                    alert(`Sign out error: ${error.message}`);
+                    console.error('Sign out error:', error);
+                }
+            });
+            
+        } catch (error) {
+            document.getElementById('status').textContent = `Error initializing Firebase: ${error.message}`;
+            document.getElementById('status').className = 'status error';
+            console.error('Firebase initialization error:', error);
+        }
+    </script>
+</body>
+</html> 

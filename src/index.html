@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AG | Password Manager</title>
+    <link rel="stylesheet" href="css/styles.css">
+    
+  <link rel="icon" href="https://raw.githubusercontent.com/AG-Pixel-creater/Images/refs/heads/main/Adobe%20Express%20-%20file%20(1).png" type="logo.png">
+  <style>
+    .error-container {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        border: 1px solid #f5c6cb;
+    }
+    .error-heading {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .error-details {
+        font-family: monospace;
+        white-space: pre-wrap;
+        margin-top: 10px;
+        background: #f5f5f5;
+        padding: 8px;
+        border-radius: 4px;
+        max-height: 200px;
+        overflow: auto;
+    }
+    .instructions {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        border: 1px solid #c3e6cb;
+    }
+    .instructions h3 {
+        margin-top: 0;
+    }
+    .instructions code {
+        background: #f5f5f5;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+  </style>
+</head>
+<body data-theme="dark">
+    <div class="container">
+        <h1>Password Manager</h1>
+        
+        <!-- Error container for displaying Firebase errors
+        <div id="errorContainer" class="error-container hidden">
+            <div class="error-heading">Error:</div>
+            <div id="errorMessage"></div>
+            <div id="errorDetails" class="error-details"></div>
+        </div> -->
+        
+        <!-- Firestore setup instructions
+        <div id="firestoreInstructions" class="instructions hidden">
+            <h3>Firebase Permissions Issue</h3>
+            <p>It looks like your Firebase Firestore security rules need to be updated. Please follow these steps:</p>
+            <ol>
+                <li>Go to your <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer">Firebase Console</a></li>
+                <li>Select your project</li>
+                <li>Navigate to Firestore Database in the left sidebar</li>
+                <li>Click on the "Rules" tab</li>
+                <li>Replace the rules with the following:</li>
+                <code>
+                    rules_version = '2';<br>
+service cloud.firestore {<br>
+&nbsp;&nbsp;match /databases/{database}/documents {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;match /users/{userId}/{document=**} {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if request.auth != null && request.auth.uid == userId;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;}<br>
+}
+                </code>
+                <li>Click "Publish" to apply the rules</li>
+                <li>Refresh this page</li>
+            </ol>
+        </div> -->
+            
+        <div class="header-controls">
+            <button id="settingsBtn" class="settings-btn" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                    <path fill="currentColor" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"/>
+                </svg>
+            </button>
+            <div id="userDisplay" class="user-display"></div>
+            <button id="logoutBtn" class="logout-btn hidden">Logout</button>
+        </div>
+        
+        <div id="loginForm" class="login-container">
+            <h2>Welcome Back</h2>
+            <div class="auth-layout">
+                <div class="auth-main">
+                    <form id="login">
+                        <div class="input-group">
+                            <input type="email" placeholder="Email" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" placeholder="Password" required>
+                        </div>
+                        <button type="submit" class="login-btn">Login</button>
+                    </form>
+                    <p>Don't have an account? <button id="showSignup" type="button" class="text-button">Sign Up</button></p>
+                </div>
+                <div class="auth-divider">
+                    <span>or</span>
+                </div>
+                <div class="auth-social">
+                    <button id="googleLogin" class="social-btn google">
+                        <img src="https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google">
+                        Login with Google
+                    </button>
+                    <button id="githubLogin" class="social-btn github">
+                        <svg height="16" viewBox="0 0 16 16" width="16" class="github-icon">
+                            <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                        </svg>
+                        Sign in with GitHub
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="signupForm" class="signup-container hidden">
+            <h2>Create Account</h2>
+            <div class="auth-layout">
+                <div class="auth-main">
+                    <form id="signup">
+                        <div class="input-group">
+                            <input type="email" placeholder="Email" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" placeholder="Password" required>
+                        </div>
+                        <button type="submit" class="signup-btn">Create Account</button>
+                    </form>
+                    <p>Already have an account? <button id="showLogin" type="button" class="text-button">Login</button></p>
+                </div>
+                <div class="auth-divider">
+                    <span>or</span>
+                </div>
+                <div class="auth-social">
+                    <button id="googleSignup" class="social-btn google">
+                        <img src="https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google">
+                        Sign up with Google
+                    </button>
+                    <button id="githubSignup" class="social-btn github">
+                        <svg height="16" viewBox="0 0 16 16" width="16" class="github-icon">
+                            <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                        </svg>
+                        Sign up with GitHub
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="passwordManager" class="hidden">
+            <h2>Password Manager Dashboard</h2>
+            
+            <div class="password-dashboard">
+                <!-- Left column: Add new passwords -->
+                <div class="password-form-container">
+                    <h3>Add New Password</h3>
+                    <form id="passwordForm">
+                        <div class="input-group">
+                            <input type="text" id="website" placeholder="Website" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="username" placeholder="Username" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="password" placeholder="Password" required>
+                        </div>
+                        <button type="submit" class="save-btn">Save Password</button>
+                    </form>
+                </div>
+                
+                <!-- Right column: View saved passwords -->
+                <div class="password-list-container">
+                    <h3>Your Saved Passwords</h3>
+                    <div class="search-container">
+                        <input type="text" id="passwordSearch" placeholder="Search passwords..." class="search-input">
+                    </div>
+                    <div id="passwordsList" class="passwords-list"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Settings</h2>
+                <div class="theme-selector">
+                    <h3>Theme</h3>
+                    <button class="theme-btn" data-theme="light">Light</button>
+                    <button class="theme-btn" data-theme="dark">Dark</button>
+                </div>
+                <button id="closeSettings" class="close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts with type="module" to support ES6 imports -->
+    <script type="module" src="js/app.js"></script>
+    <script nomodule>
+        document.body.innerHTML = '<div class="error-message">Your browser does not support ES modules. Please use a modern browser like Chrome, Firefox, or Edge.</div>';
+    </script>
+    
+    <!-- Script to display Firestore errors nicely -->
+    <!-- <script type="module">
+        window.addEventListener('error', function(event) {
+            console.error('Global error:', event.error);
+            showError(event.error);
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            showError(event.reason);
+        });
+        
+        function showError(error) {
+            const errorContainer = document.getElementById('errorContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorDetails = document.getElementById('errorDetails');
+            
+            if (errorContainer && errorMessage) {
+                errorContainer.classList.remove('hidden');
+                
+                // Format the error message
+                let message = error.message || 'An unknown error occurred';
+                errorMessage.textContent = message;
+                
+                // Show detailed error information
+                if (error.stack) {
+                    errorDetails.textContent = error.stack;
+                } else {
+                    errorDetails.textContent = JSON.stringify(error, null, 2);
+                }
+                
+                // Show Firestore instructions if it's a permission error
+                if (message.includes('Missing or insufficient permissions')) {
+                    document.getElementById('firestoreInstructions').classList.remove('hidden');
+                }
+            }
+        }
+    </script> -->
+</body>
+</html>

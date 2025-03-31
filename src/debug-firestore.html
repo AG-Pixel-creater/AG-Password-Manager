@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Debug Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .container {
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            font-size: 14px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .rules-container {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin: 20px 0;
+        }
+        .code {
+            font-family: monospace;
+            white-space: pre;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Firebase Firestore Debug Tool</h1>
+    
+    <div class="container">
+        <h2>Firebase Status</h2>
+        <div id="firebaseStatus" class="status info">Checking Firebase connection...</div>
+    </div>
+    
+    <div class="container">
+        <h2>Authentication</h2>
+        <div id="authStatus" class="status info">Checking authentication status...</div>
+        
+        <div id="authControls">
+            <h3>Sign In / Sign Up</h3>
+            <div>
+                <input type="email" id="email" placeholder="Email" value="test@example.com">
+            </div>
+            <div>
+                <input type="password" id="password" placeholder="Password" value="password123">
+            </div>
+            <div>
+                <button id="signInBtn">Sign In</button>
+                <button id="signUpBtn">Sign Up</button>
+                <button id="signOutBtn">Sign Out</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>Firestore Tests</h2>
+        <div id="firestoreStatus" class="status info">Run tests to check Firestore access</div>
+        
+        <button id="runTestsBtn">Run Firestore Tests</button>
+        <button id="clearConsoleBtn">Clear Console</button>
+        
+        <h3>Test Results:</h3>
+        <pre id="testResults">No tests run yet.</pre>
+    </div>
+    
+    <div class="container">
+        <h2>Firestore Rules</h2>
+        <div class="rules-container">
+            <p>Make sure your Firestore rules are set correctly:</p>
+            <div class="code">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}</div>
+            <p>To update your rules:</p>
+            <ol>
+                <li>Go to <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer">Firebase Console</a></li>
+                <li>Select your project</li>
+                <li>Go to Firestore Database → Rules</li>
+                <li>Copy and paste the rules above</li>
+                <li>Click "Publish"</li>
+            </ol>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>Console Log</h2>
+        <pre id="consoleOutput">Waiting for actions...</pre>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from 'firebase/app';
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            onAuthStateChanged, 
+            signOut 
+        } from 'firebase/auth';
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            deleteDoc, 
+            collection, 
+            getDocs 
+        } from 'firebase/firestore';
+        
+        // Override console.log to display in our UI
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const consoleOutput = document.getElementById('consoleOutput');
+        
+        console.log = function() {
+            originalConsoleLog.apply(console, arguments);
+            const args = Array.from(arguments);
+            const formattedArgs = args.map(arg => {
+                if (typeof arg === 'object') return JSON.stringify(arg, null, 2);
+                return arg;
+            }).join(' ');
+            consoleOutput.textContent += `\n[LOG] ${formattedArgs}`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        console.error = function() {
+            originalConsoleError.apply(console, arguments);
+            const args = Array.from(arguments);
+            const formattedArgs = args.map(arg => {
+                if (typeof arg === 'object') return JSON.stringify(arg, null, 2);
+                return arg;
+            }).join(' ');
+            consoleOutput.textContent += `\n[ERROR] ${formattedArgs}`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8cmVUnA5BH886q8pZaY95qJWtp2Zix-0",
+            authDomain: "ag-password-manager.firebaseapp.com",
+            projectId: "ag-password-manager",
+            storageBucket: "ag-password-manager.appspot.com",
+            messagingSenderId: "600996701075",
+            appId: "1:600996701075:web:2726a2e9b16fee4e2f3e66",
+            measurementId: "G-DGW7L70Z13"
+        };
+        
+        // Initialize Firebase
+        let app, auth, db;
+        let currentUser = null;
+        
+        try {
+            console.log('Initializing Firebase');
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            
+            updateStatus('firebaseStatus', 'Firebase initialized successfully!', 'success');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            updateStatus('firebaseStatus', `Firebase initialization error: ${error.message}`, 'error');
+        }
+        
+        // Set up auth state listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                console.log('User signed in:', user.email);
+                updateStatus('authStatus', `Signed in as: ${user.email} (${user.uid})`, 'success');
+            } else {
+                currentUser = null;
+                console.log('User signed out');
+                updateStatus('authStatus', 'Not signed in', 'warning');
+            }
+        });
+        
+        // Set up event listeners
+        document.getElementById('signInBtn').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                console.log('Attempting to sign in with:', email);
+                await signInWithEmailAndPassword(auth, email, password);
+                console.log('Sign in successful');
+            } catch (error) {
+                console.error('Sign in error:', error);
+                updateStatus('authStatus', `Sign in error: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('signUpBtn').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                console.log('Attempting to create account for:', email);
+                await createUserWithEmailAndPassword(auth, email, password);
+                console.log('Account creation successful');
+            } catch (error) {
+                console.error('Sign up error:', error);
+                updateStatus('authStatus', `Sign up error: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('signOutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                console.log('Sign out successful');
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
+        });
+        
+        document.getElementById('runTestsBtn').addEventListener('click', async () => {
+            if (!currentUser) {
+                updateStatus('firestoreStatus', 'You must be signed in to run tests', 'warning');
+                return;
+            }
+            
+            const testResults = document.getElementById('testResults');
+            testResults.textContent = 'Running tests...\n';
+            
+            try {
+                // Test 1: Write to a test document
+                await testWrite();
+                
+                // Test 2: Read the test document
+                await testRead();
+                
+                // Test 3: List documents in a collection
+                await testList();
+                
+                // Test 4: Delete the test document
+                await testDelete();
+                
+                updateStatus('firestoreStatus', 'All tests completed successfully!', 'success');
+            } catch (error) {
+                console.error('Test error:', error);
+                updateStatus('firestoreStatus', `Test failed: ${error.message}`, 'error');
+                testResults.textContent += `\nERROR: ${error.message}`;
+            }
+        });
+        
+        document.getElementById('clearConsoleBtn').addEventListener('click', () => {
+            consoleOutput.textContent = 'Console cleared';
+        });
+        
+        // Test functions
+        async function testWrite() {
+            const testResults = document.getElementById('testResults');
+            testResults.textContent += 'Testing write operation... ';
+            
+            const testDoc = doc(db, `users/${currentUser.uid}/tests`, 'test-doc');
+            await setDoc(testDoc, {
+                timestamp: new Date().toISOString(),
+                message: 'Test document'
+            });
+            
+            testResults.textContent += 'SUCCESS\n';
+            console.log('Write test passed');
+            return true;
+        }
+        
+        async function testRead() {
+            const testResults = document.getElementById('testResults');
+            testResults.textContent += 'Testing read operation... ';
+            
+            const testDoc = doc(db, `users/${currentUser.uid}/tests`, 'test-doc');
+            const docSnap = await getDoc(testDoc);
+            
+            if (docSnap.exists()) {
+                testResults.textContent += 'SUCCESS\n';
+                console.log('Read test passed, data:', docSnap.data());
+                return true;
+            } else {
+                throw new Error('Document does not exist');
+            }
+        }
+        
+        async function testList() {
+            const testResults = document.getElementById('testResults');
+            testResults.textContent += 'Testing list operation... ';
+            
+            const testsCollection = collection(db, `users/${currentUser.uid}/tests`);
+            const querySnapshot = await getDocs(testsCollection);
+            
+            testResults.textContent += `SUCCESS (${querySnapshot.size} documents)\n`;
+            console.log(`List test passed, found ${querySnapshot.size} documents`);
+            return true;
+        }
+        
+        async function testDelete() {
+            const testResults = document.getElementById('testResults');
+            testResults.textContent += 'Testing delete operation... ';
+            
+            const testDoc = doc(db, `users/${currentUser.uid}/tests`, 'test-doc');
+            await deleteDoc(testDoc);
+            
+            testResults.textContent += 'SUCCESS\n';
+            console.log('Delete test passed');
+            return true;
+        }
+        
+        // Helper function to update status messages
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.className = `status ${type || 'info'}`;
+            }
+        }
+    </script>
+</body>
+</html> 
